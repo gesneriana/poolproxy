@@ -1,13 +1,15 @@
 package main
 
 import (
-	"github.com/naoina/toml"
+	"github.com/bjdgyc/slog"
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/naoina/toml"
 )
 
-//配置文件
+// 配置文件
 type Config struct {
 	Logfile string
 	Options map[string]Option
@@ -75,17 +77,17 @@ func (opt *Option) init() error {
 func LoadConfig(file string) *Config {
 	f, err := os.Open(file)
 	if err != nil {
-		commonLog.Fatal(err)
+		slog.Fatal(err)
 	}
 	defer f.Close()
 	buf, err := ioutil.ReadAll(f)
 	if err != nil {
-		commonLog.Fatal(err)
+		slog.Fatal(err)
 	}
 	config := new(Config)
 	err = toml.Unmarshal(buf, config)
 	if err != nil {
-		commonLog.Fatal(err)
+		slog.Fatal(err)
 	}
 	return config
 }

@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bjdgyc/slog"
 	"net/http"
 	_ "net/http/pprof"
+
+	"github.com/bjdgyc/slog"
 )
 
 var (
-	connPool  *ConnPool
-	commonLog *slog.Logger = slog.GetStdLog()
+	connPool *ConnPool
 )
 
 func main() {
@@ -21,17 +21,11 @@ func main() {
 	config := LoadConfig(*cfile)
 
 	if config.Logfile != "" {
-		commonLog = slog.New(config.Logfile, "")
+		slog.SetLogfile(config.Logfile)
 	}
 
 	for _, opt := range config.Options {
-
-		logger := commonLog
-		if opt.Logfile != "" {
-			logger = slog.New(opt.Logfile, "")
-		}
-
-		connPool = NewConnPool(opt, logger)
+		connPool = NewConnPool(opt)
 		go StartProxy(connPool, opt.Addr)
 		fmt.Println(connPool)
 	}

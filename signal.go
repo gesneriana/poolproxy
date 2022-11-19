@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/bjdgyc/slog"
 )
 
 var (
@@ -15,7 +17,7 @@ func InitSignal() {
 	signal.Notify(exitChan, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT) // , syscall.SIGSTOP
 	for {
 		s := <-exitChan
-		commonLog.Info("get a signal %s", s.String())
+		slog.Info("get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT: // , syscall.SIGSTOP
 			return
@@ -27,6 +29,6 @@ func InitSignal() {
 	}
 }
 
-//TODO 没有实现
+// TODO 没有实现
 func reload() {
 }
