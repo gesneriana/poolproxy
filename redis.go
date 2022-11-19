@@ -7,6 +7,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/bjdgyc/slog"
 )
 
 type Redis struct {
@@ -15,7 +17,7 @@ type Redis struct {
 
 var _ Conner = (*Redis)(nil)
 
-//redis的ping
+// redis的ping
 func (cn *Redis) Ping() error {
 	err := cn.conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
 	if err != nil {
@@ -31,7 +33,7 @@ func (cn *Redis) Ping() error {
 	return nil
 }
 
-//redis 权限验证
+// redis 权限验证
 func (cn *Redis) Auth(user, pass string) error {
 	if pass == "" {
 		return nil
@@ -52,7 +54,7 @@ func (cn *Redis) Auth(user, pass string) error {
 	return nil
 }
 
-//redis 数据读取
+// redis 数据读取
 func (cn *Redis) ReadData() {
 	var (
 		line []byte
@@ -70,7 +72,7 @@ func (cn *Redis) ReadData() {
 	}
 }
 
-//redis数据交换
+// redis数据交换
 func (cn *Redis) SwapData(local net.Conn) bool {
 	lread := bufio.NewReader(local)
 
@@ -91,7 +93,7 @@ func (cn *Redis) SwapData(local net.Conn) bool {
 			line, err = lread.ReadBytes('\n')
 			if err != nil {
 				if err != io.EOF {
-					cn.conn.log.Error("local read error:", err)
+					slog.Error("local read error:", err)
 				}
 				break
 			}
@@ -99,7 +101,7 @@ func (cn *Redis) SwapData(local net.Conn) bool {
 			err = cn.conn.Write(line)
 			if err != nil {
 				forceClose = true
-				cn.conn.log.Error("remote write error:", err)
+				slog.Error("remote write error:", err)
 				break
 			}
 		}
@@ -115,13 +117,13 @@ func (cn *Redis) SwapData(local net.Conn) bool {
 		case cb = <-readChan:
 			if cb.Err != nil {
 				forceClose = true
-				cn.conn.log.Error("remote read error:", err)
+				slog.Error("remote read error:", err)
 				goto FAIL
 			}
 			//fmt.Println(string(cb.Byte))
 			_, err = local.Write(cb.Byte)
 			if err != nil {
-				cn.conn.log.Error("local write error:", err)
+				slog.Error("local write error:", err)
 				goto FAIL
 			}
 		}

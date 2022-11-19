@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"github.com/bjdgyc/slog"
 	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bjdgyc/slog"
 )
 
 var (
@@ -58,23 +59,21 @@ type ConnPool struct {
 	stats     PoolStats
 	opt       Option // 配置参数
 	closed    bool   // 连接池关闭标志
-	log       *slog.Logger
 }
 
 // 验证ConnPool是否实现了Pooler接口
 var _ Pooler = (*ConnPool)(nil)
 
-func NewConnPool(opt Option, logger *slog.Logger) *ConnPool {
+func NewConnPool(opt Option) *ConnPool {
 	err := opt.init()
 	if err != nil {
-		logger.Fatal(err)
+		slog.Fatal(err)
 	}
 
 	p := &ConnPool{
 		opt:       opt,
 		queue:     make(chan struct{}, opt.RPoolSize),
 		freeConns: make([]*Conn, 0, opt.RPoolSize),
-		log:       logger,
 	}
 	for i := 0; i < opt.RPoolSize; i++ {
 		p.queue <- struct{}{}
@@ -83,7 +82,7 @@ func NewConnPool(opt Option, logger *slog.Logger) *ConnPool {
 	//首先创建一个连接测试
 	conn, err := p.Get()
 	if err != nil {
-		p.log.Fatal(err)
+		slog.Fatal(err)
 	}
 	//归还连接测试
 	p.Put(conn, false)
@@ -139,13 +138,13 @@ func (p *ConnPool) Get() (*Conn, error) {
 			atomic.AddInt32(&p.stats.UseConns, 1)
 			return conn, nil
 		}
-		p.log.Warn(errConnActive)
+		slog.Warn(errConnActive)
 		//超出最大空闲时间，或链接错误
 		conn.Close()
 	}
 
 	//创建新的链接
-	newcn, err := NewConn(p.opt, p.log)
+	newcn, err := NewConn(p.opt)
 	if err != nil {
 		p.queue <- struct{}{}
 		return nil, err
@@ -155,7 +154,7 @@ func (p *ConnPool) Get() (*Conn, error) {
 	return newcn, nil
 }
 
-//使用完后归还
+// 使用完后归还
 func (p *ConnPool) Put(conn *Conn, forceClose bool) {
 	//连接错误 强制关闭
 	if forceClose || p.closed {
@@ -186,7 +185,7 @@ func (p *ConnPool) FreeLen() int {
 	return l
 }
 
-//获取连接池状态信息
+// 获取连接池状态信息
 func (p *ConnPool) Stats() *PoolStats {
 	stats := PoolStats{}
 	stats.Requests = atomic.LoadInt32(&p.stats.Requests)
@@ -197,7 +196,7 @@ func (p *ConnPool) Stats() *PoolStats {
 	return &stats
 }
 
-//关闭连接池
+// 关闭连接池
 func (p *ConnPool) Close() error {
 	if p.closed {
 		return ErrClosed
@@ -219,7 +218,7 @@ func (p *ConnPool) Close() error {
 	return nil
 }
 
-//定时检测不活跃的连接
+// 定时检测不活跃的连接
 func (p *ConnPool) CheckActiveConns() {
 	ticker := time.NewTicker(p.opt.RIdleCheckFrequency)
 	defer ticker.Stop()
@@ -251,7 +250,7 @@ func (p *ConnPool) CheckActiveConns() {
 		}
 		p.lock.Unlock()
 
-		p.log.Debug(p.opt.Addr, p.Stats())
+		slog.Debug(p.opt.Addr, p.Stats())
 	}
 
 }
